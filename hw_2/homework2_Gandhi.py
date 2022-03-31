@@ -38,8 +38,14 @@ def fMSE (wtilde, Xtilde, y):
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, and a regularization strength
 # alpha (default value of 0), return the gradient of the (regularized) MSE loss.
 def gradfMSE (wtilde, Xtilde, y, alpha = 0.):
-    
-    pass
+    grad_fMSE_inner_math = Xtilde*(np.transpose(Xtilde)*wtilde - y)
+    grad_fMSE_sum = np.sum(grad_fMSE_inner_math, axis=0)
+    grad_fMSE = np.mean(grad_fMSE_sum)
+
+    penalty = (alpha*wtilde)/Xtilde.shape[1]
+
+    grad_fMSE = grad_fMSE + penalty
+    return grad_fMSE
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using the analytical solution.
 def method1 (Xtilde, y):
