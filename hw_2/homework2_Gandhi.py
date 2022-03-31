@@ -1,5 +1,6 @@
 from unittest import result
-from matplotlib.pyplot import axis
+from matplotlib import pyplot as plt
+
 import numpy as np
 
 ########################################################################################################################
@@ -22,34 +23,38 @@ def reshapeAndAppend1s (faces):
     Xtilde = faces.reshape(N, M)
     Xtilde = np.transpose(Xtilde)
     ones = np.ones((1, N))
-    Xtilde = np.append(Xtilde, ones, axis=00)
+    Xtilde = np.append(Xtilde, ones, axis=0)
     return Xtilde
 
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, return the (unregularized)
 # MSE.
 def fMSE (wtilde, Xtilde, y):
-    inner_math = (np.transpose(Xtilde))*wtilde - y 
-    print(inner_math)
+    inner_math = Xtilde.T*wtilde
+    inner_math = np.sum(inner_math, axis=1)
+    inner_math = inner_math - y
     inner_math = inner_math**2
-    sum = np.sum(inner_math, axis=0)
-    cost = np.mean(sum)
+    cost = (np.mean(inner_math)/2)
     return cost
 
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, and a regularization strength
 # alpha (default value of 0), return the gradient of the (regularized) MSE loss.
 def gradfMSE (wtilde, Xtilde, y, alpha = 0.):
-    grad_fMSE_inner_math = Xtilde*(np.transpose(Xtilde)*wtilde - y)
-    grad_fMSE_sum = np.sum(grad_fMSE_inner_math, axis=0)
-    grad_fMSE = np.mean(grad_fMSE_sum)
+    grad_fMSE_inner_math = Xtilde.T*wtilde
+    grad_fMSE_inner_math = np.sum(grad_fMSE_inner_math, axis=1)
+    grad_fMSE_inner_math = grad_fMSE_inner_math - y
+    grad_fMSE_inner_math = np.sum(grad_fMSE_inner_math*Xtilde)
 
     penalty = (alpha*wtilde)/Xtilde.shape[1]
 
-    grad_fMSE = grad_fMSE + penalty
+    grad_fMSE = grad_fMSE_inner_math + penalty
+    
+    grad_fMSE = np.mean(grad_fMSE)
     return grad_fMSE
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using the analytical solution.
 def method1 (Xtilde, y):
-    pass
+    weights = np.linalg.solve(Xtilde.dot(Xtilde.T), Xtilde.dot(y))
+    return weights
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using gradient descent on fMSE.
 def method2 (Xtilde, y):
@@ -69,13 +74,22 @@ def gradientDescent (Xtilde, y, alpha = 0.):
 if __name__ == "__main__":
     # Load data
     Xtilde_tr = reshapeAndAppend1s(np.load("age_regression_Xtr.npy"))
-    # ytr = np.load("age_regression_ytr.npy")
-    # Xtilde_te = reshapeAndAppend1s(np.load("age_regression_Xte.npy"))
-    # yte = np.load("age_regression_yte.npy")
+    ytr = np.load("age_regression_ytr.npy")
+    Xtilde_te = reshapeAndAppend1s(np.load("age_regression_Xte.npy"))
+    yte = np.load("age_regression_yte.npy")
 
-    # w1 = method1(Xtilde_tr, ytr)
+    w1 = method1(Xtilde_tr, ytr)
     # w2 = method2(Xtilde_tr, ytr)
     # w3 = method3(Xtilde_tr, ytr)
 
     # Report fMSE cost using each of the three learned weight vectors
-    # ...
+
+    fmse_tr_method1 = fMSE(w1, Xtilde_tr, ytr)
+    fmse_te_method1 = fMSE(w1, Xtilde_te, yte)
+
+    #Predicting on the test dataset
+    # for i in range(len(yte)):
+    #     image = Xtilde_te[:,i]
+    #     pred = image*w1
+    #     pred = np.sum(pred)
+    #     print(pred, yte[i])
