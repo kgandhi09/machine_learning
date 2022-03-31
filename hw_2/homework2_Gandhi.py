@@ -1,3 +1,4 @@
+from matplotlib.pyplot import axis
 import numpy as np
 
 ########################################################################################################################
@@ -15,7 +16,13 @@ def trainPolynomialRegressor (x, y, d):
 # Given an array of faces (N x M x M, where N is number of examples and M is number of pixes along each axis),
 # return a design matrix Xtilde ((M**2 + 1) x N) whose last row contains all 1s.
 def reshapeAndAppend1s (faces):
-    pass
+    N = faces.shape[0]
+    M = faces.shape[1]**2
+    Xtilde = faces.reshape(N, M)
+    Xtilde = np.transpose(Xtilde)
+    ones = np.ones((1, N))
+    Xtilde = np.append(Xtilde, ones, axis=00)
+    return Xtilde
 
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, return the (unregularized)
 # MSE.
@@ -49,13 +56,13 @@ def gradientDescent (Xtilde, y, alpha = 0.):
 if __name__ == "__main__":
     # Load data
     Xtilde_tr = reshapeAndAppend1s(np.load("age_regression_Xtr.npy"))
-    ytr = np.load("age_regression_ytr.npy")
-    Xtilde_te = reshapeAndAppend1s(np.load("age_regression_Xte.npy"))
-    yte = np.load("age_regression_yte.npy")
+    # ytr = np.load("age_regression_ytr.npy")
+    # Xtilde_te = reshapeAndAppend1s(np.load("age_regression_Xte.npy"))
+    # yte = np.load("age_regression_yte.npy")
 
-    w1 = method1(Xtilde_tr, ytr)
-    w2 = method2(Xtilde_tr, ytr)
-    w3 = method3(Xtilde_tr, ytr)
+    # w1 = method1(Xtilde_tr, ytr)
+    # w2 = method2(Xtilde_tr, ytr)
+    # w3 = method3(Xtilde_tr, ytr)
 
     # Report fMSE cost using each of the three learned weight vectors
     # ...
