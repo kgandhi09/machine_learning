@@ -1,3 +1,4 @@
+from unittest import result
 from matplotlib.pyplot import axis
 import numpy as np
 
@@ -27,11 +28,17 @@ def reshapeAndAppend1s (faces):
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, return the (unregularized)
 # MSE.
 def fMSE (wtilde, Xtilde, y):
-    pass
+    inner_math = (np.transpose(Xtilde))*wtilde - y 
+    print(inner_math)
+    inner_math = inner_math**2
+    sum = np.sum(inner_math, axis=0)
+    cost = np.mean(sum)
+    return cost
 
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, and a regularization strength
 # alpha (default value of 0), return the gradient of the (regularized) MSE loss.
 def gradfMSE (wtilde, Xtilde, y, alpha = 0.):
+    
     pass
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using the analytical solution.
