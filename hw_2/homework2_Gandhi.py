@@ -1,5 +1,6 @@
+from doctest import testfile
 from unittest import result
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, widgets
 
 import numpy as np
 
@@ -9,7 +10,19 @@ import numpy as np
 # Given a vector x of (scalar) inputs and associated vector y of the target labels, and given
 # degree d of the polynomial, train a polynomial regression model and return the optimal weight vector.
 def trainPolynomialRegressor (x, y, d):
-    pass
+    
+    X = np.ones((d+1,x.shape[0]))
+    
+    col = 0
+    for el in x:
+        x_ = np.array(())
+        for i in range(d+1):
+            x_ = np.append(x_, np.array(([el**i])), axis=0)
+        X[:,col] = x_ 
+        col += 1
+    
+    weights = method1(X, y)
+    return(weights)
 
 ########################################################################################################################
 # PROBLEM 1
@@ -29,9 +42,7 @@ def reshapeAndAppend1s (faces):
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, return the (unregularized)
 # MSE.
 def fMSE (wtilde, Xtilde, y):
-    inner_math = Xtilde.T*wtilde
-    inner_math = np.sum(inner_math, axis=1)
-    inner_math = inner_math - y
+    inner_math = Xtilde.T.dot(wtilde) - y
     inner_math = inner_math**2
     cost = (np.mean(inner_math)/2)
     return cost
@@ -39,16 +50,15 @@ def fMSE (wtilde, Xtilde, y):
 # Given a vector of weights w, a design matrix Xtilde, and a vector of labels y, and a regularization strength
 # alpha (default value of 0), return the gradient of the (regularized) MSE loss.
 def gradfMSE (wtilde, Xtilde, y, alpha = 0.):
-    grad_fMSE_inner_math = Xtilde.T*wtilde
-    grad_fMSE_inner_math = np.sum(grad_fMSE_inner_math, axis=1)
-    grad_fMSE_inner_math = grad_fMSE_inner_math - y
-    grad_fMSE_inner_math = np.sum(grad_fMSE_inner_math*Xtilde)
-
+    
+    grad_fMSE_inner_math = Xtilde.T.dot(wtilde) - y
+    grad_fMSE_inner_math = Xtilde.dot(grad_fMSE_inner_math)
     penalty = (alpha*wtilde)/Xtilde.shape[1]
 
     grad_fMSE = grad_fMSE_inner_math + penalty
+
+    grad_fMSE = (grad_fMSE)/Xtilde.shape[1]
     
-    grad_fMSE = np.mean(grad_fMSE)
     return grad_fMSE
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using the analytical solution.
@@ -58,18 +68,29 @@ def method1 (Xtilde, y):
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using gradient descent on fMSE.
 def method2 (Xtilde, y):
-    pass
+    weigths = gradientDescent(Xtilde, y)
+    return weigths
 
 # Given a design matrix Xtilde and labels y, train a linear regressor for Xtilde and y using gradient descent on fMSE
 # with regularization.
 def method3 (Xtilde, y):
     ALPHA = 0.1
-    pass
+    weigths = gradientDescent(Xtilde, y, alpha=ALPHA)
+    return weigths
 
 # Helper method for method2 and method3.
 def gradientDescent (Xtilde, y, alpha = 0.):
     EPSILON = 3e-3  # Step size aka learning rate
     T = 5000  # Number of gradient descent iterations
+
+    w = 0.01*np.random.rand(2305)
+    for i in range(T):
+        
+        grad = gradfMSE(w, Xtilde, y, alpha)
+
+        w = w - EPSILON*grad
+
+    return w
 
 if __name__ == "__main__":
     # Load data
@@ -79,17 +100,65 @@ if __name__ == "__main__":
     yte = np.load("age_regression_yte.npy")
 
     w1 = method1(Xtilde_tr, ytr)
-    # w2 = method2(Xtilde_tr, ytr)
-    # w3 = method3(Xtilde_tr, ytr)
+    w2 = method2(Xtilde_tr, ytr)
+    w3 = method3(Xtilde_tr, ytr)
+
 
     # Report fMSE cost using each of the three learned weight vectors
 
     fmse_tr_method1 = fMSE(w1, Xtilde_tr, ytr)
     fmse_te_method1 = fMSE(w1, Xtilde_te, yte)
 
-    #Predicting on the test dataset
-    # for i in range(len(yte)):
-    #     image = Xtilde_te[:,i]
-    #     pred = image*w1
-    #     pred = np.sum(pred)
-    #     print(pred, yte[i])
+    fmse_tr_method2 = fMSE(w2, Xtilde_tr, ytr)
+    fmse_te_method2 = fMSE(w2, Xtilde_te, yte)
+
+    fmse_tr_method3 = fMSE(w3, Xtilde_tr, ytr)
+    fmse_te_method3 = fMSE(w3, Xtilde_te, yte)
+
+    print("Method 1: Analytical Solution")
+    print("Training half-MSE: " + str(fmse_tr_method1))
+    print("Testing half-MSE: " + str(fmse_te_method1))
+
+    print("Method 2: Gradient Descent without Regularization")
+    print("Training half-MSE: " + str(fmse_tr_method2))
+    print("Testing half-MSE: " + str(fmse_te_method2))
+
+    print("Method 3: Gradient Descent with Regularization)")
+    print("Training half-MSE: " + str(fmse_tr_method3))
+    print("Testing half-MSE: " + str(fmse_te_method3))
+    
+    # Visualizing Weights
+    vis_weights = [w1, w2, w3]
+    for i in range(3):
+        image = vis_weights[i]
+        image = np.delete(image, -1)
+        image = image.reshape(48,48)
+        plt.imshow(image)
+        plt.show()
+
+
+    # Predicting on the test dataset
+    count = 0
+    rigorous_im = []
+    for i in range(len(yte)):
+        image = Xtilde_te[:,i]
+        pred = image*w3
+        pred = np.sum(pred)
+        if(abs(pred-yte[i]) > 40):
+            rigorous_im.append(i)
+            count += 1
+            print(i, pred, yte[i])
+        if count > 5:
+            break
+
+    # rigorous_im = [89, 287, 389, 581, 830]
+    # Xtilde_te = Xtilde_te.T
+    # for i in range(5):
+    #     image_no = rigorous_im[i]
+
+    #     image = Xtilde_te[image_no]
+        
+    #     image = np.delete(image, -1)
+    #     image = image.reshape(48,48)
+    #     plt.imshow(image)
+    #     plt.show()
