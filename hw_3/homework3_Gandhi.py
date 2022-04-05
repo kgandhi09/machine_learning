@@ -12,7 +12,7 @@ def reshapeAndAugment(input_images):
 #Returns Z
 def preActivationScores(Xtilde, Wtilde):
     z = Xtilde.T.dot(Wtilde)
-    return z
+    return z 
 
 #Given the pre activation scores
 #Creates a probability distribution for each class, by enforcing non-negativity and summation to 1.
