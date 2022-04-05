@@ -30,11 +30,24 @@ def probDistribution(z):
     y_hat = z/sum_z
     return y_hat 
 
-#Given input images X, weights W and corresponding Labels
+#Given input images X, weights W and corresponding Labels (vector form)
 #Calculates the Cross Entropy loss
 #Returns the cost of Cross Entropy loss
-def fCE():
-    pass
+def fCE(Xtilde, Wtilde, y):
+    z = preActivationScores(Xtilde, Wtilde)
+    y_hat = probDistribution(z)
+    y_hat = np.log(y_hat)
+    inner_math = y*y_hat
+    inner_math = np.sum(inner_math,axis=1)
+    cost = np.mean(inner_math)*-1
+    return cost
+
+#Given input images Xtilde, Corresponding Labels (Vector form) Y, and normalized Predictions Y_hat
+#Calculates Gradient of Cross Entropy Loss Function w.r.t Weights W
+#Then return the gradient vector
+def gradeCE(Xtilde, Y, Y_hat):
+    gradient_vector = Xtilde.dot(Y_hat- Y)
+    return gradient_vector
 
 # Given training and testing data, learning rate epsilon, batch size, and regularization strength alpha,
 # conduct stochastic gradient descent (SGD) to optimize the weight matrix Wtilde (785x10).
