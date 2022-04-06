@@ -50,9 +50,10 @@ def fCE(Xtilde, Wtilde, y):
 #Given input images Xtilde, Corresponding Labels (Vector form) Y, and normalized Predictions Y_hat
 #Calculates Gradient of Cross Entropy Loss Function w.r.t Weights W
 #Then return the gradient vector ((M+1)xK)
-def gradeCE(Xtilde, Wtilde, Y, Y_hat, alpha=0.0):
+def gradeCE(Xtilde, Wtilde, Y, alpha=0.0):
+    z = preActivationScores(Xtilde, Wtilde)
+    Y_hat = probDistribution(z)
     gradient_vector = Xtilde.dot(Y_hat- Y) 
-    Wtilde = np.sum(Wtilde, axis=1)
     penalty = alpha*Wtilde
     penalty = penalty/(Xtilde.shape[1])
     gradient_vector += penalty
@@ -63,7 +64,6 @@ def gradeCE(Xtilde, Wtilde, Y, Y_hat, alpha=0.0):
 #Returns the list of randomized batches of training data [(M+1)xbacth_size, ...]
 def prepare_training_data(Xtilde, Y, batch_size):
     no_batches = Xtilde.shape[1]/batch_size
-
     image_batches = np.hsplit(Xtilde, no_batches)
     label_batches = np.vsplit(Y, no_batches)
     return [image_batches, label_batches]
@@ -75,6 +75,9 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
     no_epochs = 1
     no_of_batches = (int)(trainingImages.shape[1]/batchSize)
 
+    #initializing random weights ((M+1)xK)
+    weights = 0.001*np.random.rand(trainingImages.shape[0], trainingLabels.shape[1])
+
     training_data = prepare_training_data(trainingImages, trainingLabels, batchSize)
     trainingImages = training_data[0]
     trainingLabels = training_data[1]
@@ -83,7 +86,7 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
     
     counter = 0
     while(counter < no_of_batches):
-        n = random.randint(0,no_of_batches)
+        n = random.randint(1,no_of_batches)-1
         if(n not in random_batch_list):
             random_batch_list.append(n)
             counter += 1
@@ -93,12 +96,11 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
             training_images_batch = trainingImages[random_batch_no]
             training_labels_batch = trainingLabels[random_batch_no]
 
-            # gradient = gradeCE(training_images_batch)
+            gradient = gradeCE(training_images_batch, weights, training_labels_batch, alpha=alpha)
+            
+            weights = weights - epsilon*gradient
 
-
-        # print(trainin)
-
-    return 1
+    return weights
 
 if __name__ == "__main__":
 
@@ -122,4 +124,9 @@ if __name__ == "__main__":
     Wtilde = softmaxRegression(trainingImages, trainingLabels, testingImages, testingLabels, epsilon=0.1, batchSize=100, alpha=.1)
 
     # Visualize the vectors
-    # ...
+    for i in range(10):
+        test = Wtilde[:,i]
+        test = np.delete(test, -1)
+        test = np.reshape(test, (28,28))
+        plt.imshow(test)
+        plt.show()
