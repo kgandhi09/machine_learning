@@ -68,6 +68,12 @@ def prepare_training_data(Xtilde, Y, batch_size):
     label_batches = np.vsplit(Y, no_batches)
     return [image_batches, label_batches]
 
+#Given the predictions Y^ and ground truth Y
+#Calculates the percent correct accuracy
+#Returns the percent correct accuracy value
+def fPC (y, yhat):
+    return np.count_nonzero(y==yhat)/y.size*100
+
 # Given training and testing data, learning rate epsilon, batch size, and regularization strength alpha,
 # conduct stochastic gradient descent (SGD) to optimize the weight matrix Wtilde (785x10).
 # Then return Wtilde.
@@ -102,6 +108,17 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
 
     return weights
 
+#Given the test images Xtilde and weights Wtilde
+#Predicts the Categories of fahion
+#Returns the predictions
+def predict(Xtilde, Wtilde):
+    z = preActivationScores(Xtilde, Wtilde)
+    predictions = probDistribution(z)
+    predictions = predictions>0.5
+    predictions = predictions * 1.0
+    return predictions
+
+
 if __name__ == "__main__":
 
     # Load data
@@ -123,10 +140,14 @@ if __name__ == "__main__":
     # Train the model
     Wtilde = softmaxRegression(trainingImages, trainingLabels, testingImages, testingLabels, epsilon=0.1, batchSize=100, alpha=.1)
 
+    #Finding the accuracy of the model
+    predictions = predict(testingImages, Wtilde)
+    accuracy = fPC(predictions, testingLabels)
+
     # Visualize the vectors
-    for i in range(10):
-        test = Wtilde[:,i]
-        test = np.delete(test, -1)
-        test = np.reshape(test, (28,28))
-        plt.imshow(test)
-        plt.show()
+    # for i in range(10):
+    #     test = Wtilde[:,i]
+    #     test = np.delete(test, -1)
+    #     test = np.reshape(test, (28,28))
+    #     plt.imshow(test)
+    #     plt.show()
