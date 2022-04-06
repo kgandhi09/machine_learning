@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from collections import Counter
 
 #Given input images from raw dataset
 #Reshaped and Apends 1 to correspond for the bias term from weights
@@ -96,8 +95,9 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
         if(n not in random_batch_list):
             random_batch_list.append(n)
             counter += 1
-
+    
     for epoch in range(no_epochs):
+        mini_batch_counter = 1
         for random_batch_no in random_batch_list:
             training_images_batch = trainingImages[random_batch_no]
             training_labels_batch = trainingLabels[random_batch_no]
@@ -105,6 +105,11 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
             gradient = gradeCE(training_images_batch, weights, training_labels_batch, alpha=alpha)
             
             weights = weights - epsilon*gradient
+
+            #Capturing fCE for last 20 batches
+            cross_entropy_loss = fCE(training_images_batch, weights, training_labels_batch)
+            print("Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cross_entropy_loss))
+            mini_batch_counter += 1
 
     return weights
 
@@ -127,7 +132,6 @@ if __name__ == "__main__":
     testingImages = np.load("fashion_mnist_test_images.npy") / 255.0  # Normalizing by 255 helps accelerate training
     testingLabels = np.load("fashion_mnist_test_labels.npy")
 
-
     # Append a constant 1 term to each example to correspond to the bias terms
     trainingImages = reshapeAndAugmentX(trainingImages)
     testingImages = reshapeAndAugmentX(testingImages)
@@ -143,11 +147,19 @@ if __name__ == "__main__":
     #Finding the accuracy of the model
     predictions = predict(testingImages, Wtilde)
     accuracy = fPC(predictions, testingLabels)
+    print("\nPercent Correct Accuracy of the model on test set: " + str(accuracy))
+
 
     # Visualize the vectors
-    # for i in range(10):
-    #     test = Wtilde[:,i]
-    #     test = np.delete(test, -1)
-    #     test = np.reshape(test, (28,28))
-    #     plt.imshow(test)
-    #     plt.show()
+    fig = plt.figure(figsize=(10, 2))
+    rows = 2
+    columns = 5
+    for i in range(0,10):
+        image_ = Wtilde[:,i]
+        image_ = np.delete(image_, -1)
+        image_ = np.reshape(image_, (28,28))
+        fig.add_subplot(rows, columns, i+1)
+        plt.imshow(image_)
+        plt.axis('off')
+
+    plt.show()
