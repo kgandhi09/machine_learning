@@ -11,10 +11,12 @@ def reshapeAndAugmentX(input_images):
     input_images = np.append(input_images, ones, axis=0)
     return input_images
 
-def one_hot_encoding(y):
-    no_classes = 10
-    vector_labels = np.zeros((y.size,no_classes))
-    vector_labels[np.arange(y.size),y] = 1
+def one_hot_encoding(y, no_classes):
+    try:
+        vector_labels = np.zeros((y.size,no_classes))
+        vector_labels[np.arange(y.size),y] = 1
+    except:
+        vector_labels = None
     return vector_labels
  
 #Given input data X and weights W
@@ -52,6 +54,7 @@ def fCE(Xtilde, Wtilde, y):
 def gradeCE(Xtilde, Wtilde, Y, alpha=0.0):
     z = preActivationScores(Xtilde, Wtilde)
     Y_hat = probDistribution(z)
+    # print(Y_hat)
     gradient_vector = Xtilde.dot(Y_hat- Y) 
     penalty = alpha*Wtilde
     penalty = penalty/(Xtilde.shape[1])
@@ -81,7 +84,7 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
     no_of_batches = (int)(trainingImages.shape[1]/batchSize)
 
     #initializing random weights ((M+1)xK)
-    weights = 0.001*np.random.rand(trainingImages.shape[0], trainingLabels.shape[1])
+    weights = 0.0001*np.random.rand(trainingImages.shape[0], trainingLabels.shape[1])
 
     training_data = prepare_training_data(trainingImages, trainingLabels, batchSize)
     trainingImages = training_data[0]
@@ -105,7 +108,7 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
             gradient = gradeCE(training_images_batch, weights, training_labels_batch, alpha=alpha)
             
             weights = weights - epsilon*gradient
-
+            
             #Capturing fCE for last 20 batches
             cross_entropy_loss = fCE(training_images_batch, weights, training_labels_batch)
             print("Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cross_entropy_loss))
@@ -138,8 +141,8 @@ if __name__ == "__main__":
 
     # Change from 0-9 labels to "one-hot" binary vector labels. For instance, 
     # if the label of some example is 3, then its y should be [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ]
-    trainingLabels = one_hot_encoding(trainingLabels)
-    testingLabels = one_hot_encoding(testingLabels)
+    trainingLabels = one_hot_encoding(trainingLabels,10)
+    testingLabels = one_hot_encoding(testingLabels,10)
 
     # Train the model
     Wtilde = softmaxRegression(trainingImages, trainingLabels, testingImages, testingLabels, epsilon=0.1, batchSize=100, alpha=.1)
