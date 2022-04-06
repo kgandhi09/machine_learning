@@ -45,8 +45,12 @@ def fCE(Xtilde, Wtilde, y):
 #Given input images Xtilde, Corresponding Labels (Vector form) Y, and normalized Predictions Y_hat
 #Calculates Gradient of Cross Entropy Loss Function w.r.t Weights W
 #Then return the gradient vector
-def gradeCE(Xtilde, Y, Y_hat):
-    gradient_vector = Xtilde.dot(Y_hat- Y)
+def gradeCE(Xtilde, Wtilde, Y, Y_hat, alpha=0.0):
+    gradient_vector = Xtilde.dot(Y_hat- Y) 
+    Wtilde = np.sum(Wtilde, axis=1)
+    penalty = alpha*Wtilde
+    penalty = penalty/(Xtilde.shape[1])
+    gradient_vector += penalty
     return gradient_vector
 
 # Given training and testing data, learning rate epsilon, batch size, and regularization strength alpha,
