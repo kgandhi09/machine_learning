@@ -24,17 +24,18 @@ def one_hot_encoding(y, no_classes):
 #Returns Z (NxK)
 def preActivationScores(Xtilde, Wtilde):
     z = Xtilde.T.dot(Wtilde)
+    # print(z)
+    # print("----------------")
     return z
 
 #Given the pre activation scores
 #Creates a probability distribution for each class, by enforcing non-negativity and summation to 1.
 #Then return the probability distribution (NxK)
 def probDistribution(z):
-    z = np.exp(z)
-    sum_z = np.sum(z, axis=1)
-    sum_z = sum_z[np.newaxis].T
-    y_hat = z/sum_z
-    return y_hat 
+    exp_z = np.exp(z)
+    sum_z = np.sum(exp_z, axis=1).reshape(len(z),1)
+    y_hat = exp_z/sum_z
+    return y_hat
 
 #Given input images X, weights W and corresponding Labels (vector form)
 #Calculates the Cross Entropy loss
@@ -54,12 +55,14 @@ def fCE(Xtilde, Wtilde, y):
 def gradeCE(Xtilde, Wtilde, Y, alpha=0.0):
     z = preActivationScores(Xtilde, Wtilde)
     Y_hat = probDistribution(z)
-    # print(Y_hat)
+    # print(Xtilde.dot(Y_hat-Y))
     gradient_vector = Xtilde.dot(Y_hat- Y) 
+    
     penalty = alpha*Wtilde
     penalty = penalty/(Xtilde.shape[1])
     gradient_vector += penalty
-    return gradient_vector
+
+    return gradient_vector/len(Y)
 
 #Given input images Xtilde, and batch_size
 #Divides the training data into random batches based on batch_size
@@ -80,11 +83,14 @@ def fPC (y, yhat):
 # conduct stochastic gradient descent (SGD) to optimize the weight matrix Wtilde (785x10).
 # Then return Wtilde.
 def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLabels, epsilon, batchSize, alpha):
-    no_epochs = 1
+    no_epochs = 10
     no_of_batches = (int)(trainingImages.shape[1]/batchSize)
 
     #initializing random weights ((M+1)xK)
-    weights = 0.0001*np.random.rand(trainingImages.shape[0], trainingLabels.shape[1])
+    weights = 0.01*np.random.randn(trainingImages.shape[0]-1, trainingLabels.shape[1])
+    w_ones = np.ones((1,trainingLabels.shape[1]))
+    
+    weights = np.append(weights, w_ones, axis=0)
 
     training_data = prepare_training_data(trainingImages, trainingLabels, batchSize)
     trainingImages = training_data[0]
@@ -98,17 +104,18 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
         if(n not in random_batch_list):
             random_batch_list.append(n)
             counter += 1
-    
+
     for epoch in range(no_epochs):
         mini_batch_counter = 1
         for random_batch_no in random_batch_list:
+            
             training_images_batch = trainingImages[random_batch_no]
             training_labels_batch = trainingLabels[random_batch_no]
 
             gradient = gradeCE(training_images_batch, weights, training_labels_batch, alpha=alpha)
-            
+                        
             weights = weights - epsilon*gradient
-            
+
             #Capturing fCE for last 20 batches
             cross_entropy_loss = fCE(training_images_batch, weights, training_labels_batch)
             print("Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cross_entropy_loss))
@@ -116,15 +123,22 @@ def softmaxRegression (trainingImages, trainingLabels, testingImages, testingLab
 
     return weights
 
+
 #Given the test images Xtilde and weights Wtilde
 #Predicts the Categories of fahion
 #Returns the predictions
 def predict(Xtilde, Wtilde):
     z = preActivationScores(Xtilde, Wtilde)
     predictions = probDistribution(z)
-    predictions = predictions>0.5
-    predictions = predictions * 1.0
-    return predictions
+    predictions_ = []
+    for pred in predictions:
+        pred[np.argmax(pred)] = 1
+        pred = pred==1.0
+        pred = pred*1.0
+        predictions_.append(pred)
+    predictions_ = np.array(predictions_)
+
+    return predictions_
 
 
 if __name__ == "__main__":
@@ -134,6 +148,7 @@ if __name__ == "__main__":
     trainingLabels = np.load("fashion_mnist_train_labels.npy")
     testingImages = np.load("fashion_mnist_test_images.npy") / 255.0  # Normalizing by 255 helps accelerate training
     testingLabels = np.load("fashion_mnist_test_labels.npy")
+
 
     # Append a constant 1 term to each example to correspond to the bias terms
     trainingImages = reshapeAndAugmentX(trainingImages)
@@ -151,7 +166,6 @@ if __name__ == "__main__":
     predictions = predict(testingImages, Wtilde)
     accuracy = fPC(predictions, testingLabels)
     print("\nPercent Correct Accuracy of the model on test set: " + str(accuracy))
-
 
     # Visualize the vectors
     fig = plt.figure(figsize=(10, 2))
