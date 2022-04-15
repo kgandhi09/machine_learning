@@ -29,7 +29,7 @@ class SVM4342 ():
 
         # self.w = 0  # TODO change this
         self.w = hyperplane[:-1].reshape(1,hyperplane.shape[0]-1)  
-        self.b = hyperplane[-1]  # TODO change this
+        self.b = hyperplane[-1]  # TODO change this        
 
     # Given a 2-D matrix of examples X, output a vector of predicted class labels
     def predict (self, x):
