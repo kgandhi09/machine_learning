@@ -99,66 +99,63 @@ if __name__ == "__main__":
     Xtilde_te = reshapeAndAppend1s(np.load("age_regression_Xte.npy"))
     yte = np.load("age_regression_yte.npy")
 
-    w1 = method1(Xtilde_tr, ytr)
-    w2 = method2(Xtilde_tr, ytr)
-    w3 = method3(Xtilde_tr, ytr)
+    unity_Xx = np.array(([-1.89, 1.19, -15.3, -18.1],[1, 1, 1, 1]))
+    unity_Xz = np.array(([-1.65, -11.45, -15.7, -6.2],[1, 1, 1, 1]))
+    # unity_Y = np.array(([14.23, 13.85, -4.33, -4.29], [9.22, -9.15, -9.15, 8.45]))
+    unity_Yx = np.array(([14.23, 13.85, -4.33, -4.29]))
+    # print(unity_X)
+    # print(unity_Y)
+
+    w1 = method1(unity_Xx, unity_Yx)
+    print(w1)
+
+    # w1 = method1(Xtilde_tr, ytr)
+    # w2 = method2(Xtilde_tr, ytr)
+    # w3 = method3(Xtilde_tr, ytr)
 
 
-    # Report fMSE cost using each of the three learned weight vectors
+    # # Report fMSE cost using each of the three learned weight vectors
 
-    fmse_tr_method1 = fMSE(w1, Xtilde_tr, ytr)
-    fmse_te_method1 = fMSE(w1, Xtilde_te, yte)
+    # fmse_tr_method1 = fMSE(w1, Xtilde_tr, ytr)
+    # fmse_te_method1 = fMSE(w1, Xtilde_te, yte)
 
-    fmse_tr_method2 = fMSE(w2, Xtilde_tr, ytr)
-    fmse_te_method2 = fMSE(w2, Xtilde_te, yte)
+    # fmse_tr_method2 = fMSE(w2, Xtilde_tr, ytr)
+    # fmse_te_method2 = fMSE(w2, Xtilde_te, yte)
 
-    fmse_tr_method3 = fMSE(w3, Xtilde_tr, ytr)
-    fmse_te_method3 = fMSE(w3, Xtilde_te, yte)
+    # fmse_tr_method3 = fMSE(w3, Xtilde_tr, ytr)
+    # fmse_te_method3 = fMSE(w3, Xtilde_te, yte)
 
-    print("Method 1: Analytical Solution")
-    print("Training half-MSE: " + str(fmse_tr_method1))
-    print("Testing half-MSE: " + str(fmse_te_method1))
+    # print("Method 1: Analytical Solution")
+    # print("Training half-MSE: " + str(fmse_tr_method1))
+    # print("Testing half-MSE: " + str(fmse_te_method1))
 
-    print("Method 2: Gradient Descent without Regularization")
-    print("Training half-MSE: " + str(fmse_tr_method2))
-    print("Testing half-MSE: " + str(fmse_te_method2))
+    # print("Method 2: Gradient Descent without Regularization")
+    # print("Training half-MSE: " + str(fmse_tr_method2))
+    # print("Testing half-MSE: " + str(fmse_te_method2))
 
-    print("Method 3: Gradient Descent with Regularization)")
-    print("Training half-MSE: " + str(fmse_tr_method3))
-    print("Testing half-MSE: " + str(fmse_te_method3))
+    # print("Method 3: Gradient Descent with Regularization)")
+    # print("Training half-MSE: " + str(fmse_tr_method3))
+    # print("Testing half-MSE: " + str(fmse_te_method3))
     
-    # Visualizing Weights
-    vis_weights = [w1, w2, w3]
-    for i in range(3):
-        image = vis_weights[i]
-        image = np.delete(image, -1)
-        image = image.reshape(48,48)
-        plt.imshow(image)
-        plt.show()
-
-
-    # Predicting on the test dataset
-    count = 0
-    rigorous_im = []
-    for i in range(len(yte)):
-        image = Xtilde_te[:,i]
-        pred = image*w3
-        pred = np.sum(pred)
-        if(abs(pred-yte[i]) > 40):
-            rigorous_im.append(i)
-            count += 1
-            print(i, pred, yte[i])
-        if count > 5:
-            break
-
-    # rigorous_im = [89, 287, 389, 581, 830]
-    # Xtilde_te = Xtilde_te.T
-    # for i in range(5):
-    #     image_no = rigorous_im[i]
-
-    #     image = Xtilde_te[image_no]
-        
+    # # Visualizing Weights
+    # vis_weights = [w1, w2, w3]
+    # for i in range(3):
+    #     image = vis_weights[i]
     #     image = np.delete(image, -1)
     #     image = image.reshape(48,48)
     #     plt.imshow(image)
     #     plt.show()
+
+    # # Predicting on the test dataset
+    # count = 0
+    # rigorous_im = []
+    # for i in range(len(yte)):
+    #     image = Xtilde_te[:,i]
+    #     pred = image*w3
+    #     pred = np.sum(pred)
+    #     if(abs(pred-yte[i]) > 40):
+    #         rigorous_im.append(i)
+    #         count += 1
+    #         print(i, pred, yte[i])
+    #     if count > 5:
+    #         break
