@@ -66,6 +66,14 @@ def relu(z):
     return relu_z
 
 #Given pre-activation scores z = W.X + b
+#calculates relu function value y = max{0,z} 
+#returns relu function value
+def relu_prime(z):
+    z = relu(z)
+    z = (z>0)*1
+    return z
+
+#Given pre-activation scores z = W.X + b
 #Calculates a probability distribution for z
 #Returns the probability distribution for z
 def softmax_activation(z):
@@ -98,12 +106,21 @@ def fCE (X, Y, w):
 # and bias terms w, compute and return the gradient of fCE. You might
 # want to extend this function to return multiple arguments (in which case you
 # will also need to modify slightly the gradient check code below).
-# def gradCE (X, Y, w):
-#     W1, b1, W2, b2 = unpack(w)
+def gradCE (X, Y, w):
+    W1, b1, W2, b2 = unpack(w)
+    cost,z_1,h_1, w1, w2, y_hat = fCE(X,Y,w)
+    grad_b2 = (y_hat - Y.T)
+    grad_w2 = grad_b2.dot(h_1.T)
 
-#     # ...
+    g_T = grad_b2.T.dot(W2) * (relu_prime(z_1).T)
+    g = g_T.T
 
-#     return grad
+    grad_w1 = g.dot(X.T)
+    grad_b1 = g
+    
+    grad = [grad_w2, grad_b2, grad_w1, grad_b1]
+
+    return grad
 
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
@@ -124,12 +141,11 @@ if __name__ == "__main__":
     
     # Concatenate all the weights and biases into one vector; this is necessary for check_grad
     w = pack(W1, b1, W2, b2)
-    fCE(trainX, trainY, w)
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    # print("Numerical gradient:")
-    # print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    print("Numerical gradient:")
+    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
     # print("Analytical gradient:")
     # print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
     # print("Discrepancy:")
