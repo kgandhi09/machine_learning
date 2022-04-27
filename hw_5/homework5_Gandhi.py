@@ -38,10 +38,16 @@ def pack (W1, b1, W2, b2):
 # Load the images and labels from a specified dataset (train or test).
 def loadData (which):
     images = np.load("fashion_mnist_{}_images.npy".format(which)).T / 255.
-    labels = np.load("fashion_mnist_{}_labels.npy".format(which)))
+    labels = np.load("fashion_mnist_{}_labels.npy".format(which))
 
     # TODO: Convert labels vector to one-hot matrix (C x N).
-    # ...
+    no_classes = 10
+    try:
+        vector_labels = np.zeros((labels.size,no_classes))
+        vector_labels[np.arange(labels.size),labels] = 1
+    except:
+        vector_labels = None
+    labels = vector_labels    
     
     return images, labels
 
@@ -50,21 +56,21 @@ def loadData (which):
 # as well as the intermediate values of the NN.
 def fCE (X, Y, w):
     W1, b1, W2, b2 = unpack(w)
-
+    
     # ...
 
-    return cost, acc, z1, h1, W1, W2, yhat
+#     return cost, acc, z1, h1, W1, W2, yhat
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the gradient of fCE. You might
 # want to extend this function to return multiple arguments (in which case you
 # will also need to modify slightly the gradient check code below).
-def gradCE (X, Y, w):
-    W1, b1, W2, b2 = unpack(w)
+# def gradCE (X, Y, w):
+#     W1, b1, W2, b2 = unpack(w)
 
-    # ...
+#     # ...
 
-    return grad
+#     return grad
 
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
@@ -85,17 +91,18 @@ if __name__ == "__main__":
     
     # Concatenate all the weights and biases into one vector; this is necessary for check_grad
     w = pack(W1, b1, W2, b2)
+    
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    print("Numerical gradient:")
-    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
-    print("Analytical gradient:")
-    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
-    print("Discrepancy:")
-    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
-                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
-                                    w))
+    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    # print("Numerical gradient:")
+    # print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    # print("Analytical gradient:")
+    # print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
+    # print("Discrepancy:")
+    # print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
+    #                                 lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
+    #                                 w))
 
-    # Train the network using SGD.
-    train(trainX, trainY, testX, testY, w)
+    # # Train the network using SGD.
+    # train(trainX, trainY, testX, testY, w)
