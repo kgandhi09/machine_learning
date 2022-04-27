@@ -51,15 +51,48 @@ def loadData (which):
     
     return images, labels
 
+#Given the predictions Y^ and ground truth Y
+#Calculates the percent correct accuracy
+#Returns the percent correct accuracy value
+def fPC (y, yhat):
+    return np.count_nonzero(y==yhat)/y.size*100
+
+#Given pre-activation scores z = W.X + b
+#calculates relu function value y = max{0,z} 
+#returns relu function value
+def relu(z):
+    z_ = (z>=0)*1
+    relu_z = z_*z
+    return relu_z
+
+#Given pre-activation scores z = W.X + b
+#Calculates a probability distribution for z
+#Returns the probability distribution for z
+def softmax_activation(z):
+    exp_z = np.exp(z)
+    sum_z = np.sum(exp_z, axis=1).reshape(len(z),1)
+    y_hat = exp_z/sum_z
+    return y_hat
+
+
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the cross-entropy (CE) loss, accuracy,
 # as well as the intermediate values of the NN.
 def fCE (X, Y, w):
     W1, b1, W2, b2 = unpack(w)
-    
-    # ...
+    b1 = np.reshape(b1, (b1.shape[0],1))
+    b2 = np.reshape(b2, (b2.shape[0],1))
 
-#     return cost, acc, z1, h1, W1, W2, yhat
+    z_1 = W1.dot(X) + b1
+    h_1 = relu(z_1)
+    z_2 = W2.dot(h_1) + b2
+    y_hat = softmax_activation(z_2)
+
+    inner_math = Y.T*np.log(y_hat)
+    inner_math = np.sum(inner_math,axis=1)
+    cost = np.mean(inner_math)*-1
+
+    return cost, z_1, h_1, W1, W2, y_hat
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the gradient of fCE. You might
@@ -91,7 +124,7 @@ if __name__ == "__main__":
     
     # Concatenate all the weights and biases into one vector; this is necessary for check_grad
     w = pack(W1, b1, W2, b2)
-    
+    fCE(trainX, trainY, w)
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
     # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
