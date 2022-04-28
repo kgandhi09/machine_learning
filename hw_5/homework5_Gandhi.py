@@ -61,16 +61,15 @@ def fPC (y, yhat):
 #calculates relu function value y = max{0,z} 
 #returns relu function value
 def relu(z):
-    z_ = (z>=0)*1
-    relu_z = z_*z
-    return relu_z
+    z[z<=0]= 0
+    return z
 
 #Given pre-activation scores z = W.X + b
 #calculates relu function value y = max{0,z} 
 #returns relu function value
 def relu_prime(z):
-    z = relu(z)
-    z = (z>0)*1
+    z[z<=0]= 0
+    z[z>0] = 1
     return z
 
 #Given pre-activation scores z = W.X + b
@@ -99,9 +98,9 @@ def fCE (X, Y, w):
 
     inner_math = Y.T*np.log(y_hat)
     inner_math = np.sum(inner_math,axis=1)
-    cost = np.mean(inner_math)*-1
-
-    return cost, z_1, z_2, h_1, W1, W2, y_hat
+    cost = (np.mean(inner_math)*-1)
+    
+    return cost, z_1, h_1, W1, W2, y_hat
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the gradient of fCE. You might
@@ -111,7 +110,7 @@ def gradCE (X, Y, w):
     
     W1, b1, W2, b2 = unpack(w)
     
-    cost,z_1,z_2,h_1, w1, w2, y_hat = fCE(X,Y,w)
+    cost,z_1,h_1, w1, w2, y_hat = fCE(X,Y,w)
     Y = Y.T
 
     grad_b2 = np.mean((y_hat - Y.T), axis=1) #(10,)
@@ -124,7 +123,7 @@ def gradCE (X, Y, w):
     grad_b1 = np.mean(g, axis=1) #(40,)
     
     grad = pack(grad_w1, grad_b1, grad_w2, grad_b2)
-
+    
     return grad
 
 # Given training and testing datasets and an initial set of weights/biases b,
@@ -146,17 +145,17 @@ if __name__ == "__main__":
     
     # Concatenate all the weights and biases into one vector; this is necessary for check_grad
     w = pack(W1, b1, W2, b2)
-    
+
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    # print("Numerical gradient:")
-    # print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
-    # print("Analytical gradient:")
-    # print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
-    # print("Discrepancy:")
-    # print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
-    #                                 lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
-    #                                 w))
+    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    print("Numerical gradient:")
+    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    print("Analytical gradient:")
+    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
+    print("Discrepancy:")
+    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
+                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
+                                    w))
 
     # # Train the network using SGD.
-    # train(trainX, trainY, testX, testY, w)
+    train(trainX, trainY, testX, testY, w) 
