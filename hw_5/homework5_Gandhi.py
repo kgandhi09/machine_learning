@@ -86,6 +86,7 @@ def softmax_activation(z):
 # and bias terms w, compute and return the cross-entropy (CE) loss, accuracy,
 # as well as the intermediate values of the NN.
 def fCE (X, Y, w):
+    
     Y = Y.T
     W1, b1, W2, b2 = unpack(w)
 
@@ -97,16 +98,18 @@ def fCE (X, Y, w):
     z_2 = W2.dot(h_1) + b2
     y_hat = softmax_activation(z_2)
 
-    inner_math = Y.T*np.log(y_hat)
-    inner_math = np.sum(inner_math,axis=1)
-    cost = (np.mean(inner_math)*-1)
+    # inner_math = Y.T*np.log(y_hat)
+    # inner_math = np.sum(inner_math,axis=1)
+    # cost = (np.mean(inner_math)*-1)
     
+    cost = -np.sum(Y.T * np.log(y_hat))/len(Y)
+
     return cost, z_1, h_1, W1, W2, y_hat
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the gradient of fCE. You might
-# want to extend this function to return multiple arguments (in which case you
 # will also need to modify slightly the gradient check code below).
+# want to extend this function to return multiple arguments (in which case you
 def gradCE (X, Y, w):
     
     W1, b1, W2, b2 = unpack(w)
@@ -119,21 +122,20 @@ def gradCE (X, Y, w):
     h_1 = relu(z_1)
     z_2 = W2.dot(h_1) + b2
     y_hat = softmax_activation(z_2)
-    print(y_hat)
     Y = Y.T
 
     #background propogation equations
     grad_b2 = np.mean((y_hat - Y.T), axis=1) #(10,)
-    grad_w2 = (y_hat - Y.T).dot(h_1.T) # (10, 40)
+    grad_w2 = (y_hat - Y.T).dot(h_1.T)/Y.shape[0] # (10, 40)
 
     g_T = grad_b2.T.dot(W2) * (relu_prime(z_1).T) #(n,40)
     g = g_T.T
 
     grad_b1 = np.mean(g, axis=1) #(40,)
-    grad_w1 = g.dot(X.T) #(40,784)
+    grad_w1 = g.dot(X.T)/Y.shape[0] #(40,784)
     
     grad = pack(grad_w1, grad_b1, grad_w2, grad_b2)
-    
+
     return grad
 
 #Given input images Xtilde, and batch_size
@@ -148,10 +150,11 @@ def prepare_training_data(Xtilde, Y, batch_size):
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
 def train (trainX, trainY, testX, testY, w):
-    no_epochs = 10
-    batch_size = 60000
+    no_epochs = 2
+    batch_size = 30000
     learning_rate = 0.1
     no_of_batches = (int)(trainX.shape[1]/batch_size)
+    alpha = 0.01
     
     training_data = prepare_training_data(trainX, trainY, batch_size)
     training_images = training_data[0]
@@ -183,9 +186,9 @@ def train (trainX, trainY, testX, testY, w):
             grad_b1 = grad_b1.reshape(grad_b1.shape[0], 1)
             grad_b2 = grad_b2.reshape(grad_b2.shape[0], 1)
 
-            w1 = w1 - learning_rate*grad_w1 
+            w1 = w1 - learning_rate*(grad_w1 + ((alpha * w1)/len(training_labels_batch))) 
             b1 = b1 - learning_rate*grad_b1
-            w2 = w2 - learning_rate*grad_w2
+            w2 = w2 - learning_rate*(grad_w2 + ((alpha * w2)/len(training_labels_batch)))
             b2 = b2 - learning_rate*grad_b2
 
             b1 = b1.reshape(b1.shape[0],)
@@ -213,15 +216,15 @@ if __name__ == "__main__":
     w = pack(W1, b1, W2, b2)
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    # print("Numerical gradient:")
-    # print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
-    # print("Analytical gradient:")
-    # print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
-    # print("Discrepancy:")
-    # print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
-    #                                 lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
-    #                                 w))
+    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    print("Numerical gradient:")
+    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    print("Analytical gradient:")
+    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
+    print("Discrepancy:")
+    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
+                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
+                                    w))
 
     # # Train the network using SGD.
     train(trainX, trainY, testX, testY, w) 
