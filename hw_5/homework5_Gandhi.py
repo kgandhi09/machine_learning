@@ -11,23 +11,25 @@ NUM_CHECK = 5  # Number of examples on which to check the gradient
 # Given a vector w containing all the weights and biased vectors, extract
 # and return the individual weights and biases W1, b1, W2, b2.
 # This is useful for performing a gradient check with check_grad.
-def unpack (w):
+def unpack (w, hidden_units):
     # Unpack arguments
     start = 0
-    end = NUM_HIDDEN*NUM_INPUT
+    end = hidden_units*NUM_INPUT
+    # print("hidden_units:{}".format(hidden_units))
+    # print("w:{}".format(w))
     W1 = w[0:end]
     start = end
-    end = end + NUM_HIDDEN
+    end = end + hidden_units
     b1 = w[start:end]
     start = end
-    end = end + NUM_OUTPUT*NUM_HIDDEN
+    end = end + NUM_OUTPUT*hidden_units
     W2 = w[start:end]
     start = end
     end = end + NUM_OUTPUT
     b2 = w[start:end]
     # Convert from vectors into matrices
-    W1 = W1.reshape(NUM_HIDDEN, NUM_INPUT)
-    W2 = W2.reshape(NUM_OUTPUT, NUM_HIDDEN)
+    W1 = W1.reshape(hidden_units, NUM_INPUT)
+    W2 = W2.reshape(NUM_OUTPUT, hidden_units)
     return W1,b1,W2,b2
 
 # Given individual weights and biases W1, b1, W2, b2, concatenate them and
@@ -52,22 +54,14 @@ def loadData (which):
     
     return images, labels
 
-def yhat_to_pred(y_hat):
-    y_hat_ = []
-    for row in y_hat:
-        row[np.argmax(row)] = 1
-        row = row==1.0
-        row = row*1.0
-        y_hat_.append(row)
-
-    y_hat_ = np.array(y_hat_)
-    return y_hat_
-
 #Given the predictions Y^ and ground truth Y
 #Calculates the percent correct accuracy
 #Returns the percent correct accuracy value
 def fPC (y, yhat):
-    return np.count_nonzero(y==yhat)/y.size*100
+    label_y = np.argmax(y,axis=0)
+    label_yhat = np.argmax(yhat,axis=0)
+    return np.mean(label_y == label_yhat)*100
+
 
 #Given pre-activation scores z = W.X + b
 #calculates relu function value y = max{0,z} 
@@ -93,12 +87,14 @@ def softmax_activation(z):
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the cross-entropy (CE) loss, accuracy,
 # as well as the intermediate values of the NN.
-def fCE (X, Y, w):
-    
+def fCE (X, Y, w, hidden_units):
+    # print(Y.shape)
     Y = Y.T
-    W1, b1, W2, b2 = unpack(w)
 
-    b1 = np.reshape(b1, (NUM_HIDDEN,1))
+
+    W1, b1, W2, b2 = unpack(w, hidden_units)
+
+    b1 = np.reshape(b1, (hidden_units,1))
     b2 = np.reshape(b2, (NUM_OUTPUT,1))
 
     z_1 = W1.dot(X) + b1
@@ -108,7 +104,6 @@ def fCE (X, Y, w):
     
     cost = -np.sum(Y.T * np.log(y_hat))/len(Y)
 
-    y_hat = yhat_to_pred(y_hat)
     acc = fPC(y_hat, Y.T)
 
     return cost, acc, z_1, h_1, W1, W2, y_hat
@@ -117,12 +112,13 @@ def fCE (X, Y, w):
 # and bias terms w, compute and return the gradient of fCE. You might
 # will also need to modify slightly the gradient check code below).
 # want to extend this function to return multiple arguments (in which case you
-def gradCE (X, Y, w):
-    
-    W1, b1, W2, b2 = unpack(w)
+def gradCE (X, Y, w, hidden_units):
+
+    # print("w:{}".format(w))
+    W1, b1, W2, b2 = unpack(w,hidden_units)
 
     #forward propogation equations
-    b1 = np.reshape(b1, (NUM_HIDDEN,1))
+    b1 = np.reshape(b1, (hidden_units,1))
     b2 = np.reshape(b2, (NUM_OUTPUT,1))
 
     z_1 = W1.dot(X) + b1
@@ -137,6 +133,7 @@ def gradCE (X, Y, w):
 
     g_T = (y_hat - Y.T).T.dot(W2) * (relu_prime(z_1.T)) #(n,40)
     g = g_T.T
+
 
     grad_b1 = np.mean(g, axis=1) #(40,)
     grad_w1 = g.dot(X.T)/Y.shape[0] #(40,784)
@@ -156,45 +153,45 @@ def prepare_training_data(Xtilde, Y, batch_size):
 
 # Optimize the hyperparameters
 def findBestHyperparameters(trainX, trainY, valX, valY, testX, testY):
-    bestNumUnitsInHiddenLayer = 0 
-    bestEpsilon = 0
-    bestMiniBatchSize = 0
-    bestNumEpochs = 0
-    bestAcc = 0
+    best_hidden_units = 0 
+    best_learning_rate = 0
+    best_batch_size = 0
+    best_no_epochs = 0
+    best_acc = 0
     
-    unitsInHiddenLayer = [50]
-    epochs = [50, 60]
-    epsilons = [0.01, 0.05, 0.1]
-    miniBatchSizes = [32, 64]
-    alpha = 0.01 # Considering only one value for alpha
+    hidden_units_list = [50]
+    no_epochs = [50, 60]
+    learning_rates = [0.01, 0.05, 0.1]
+    batch_sizes = [64, 128]
+    alpha = 0.01 
 
-    for hiddenUnits in unitsInHiddenLayer:
-        for epsilon in epsilons:
-            for miniBatchSize in miniBatchSizes:
-                for epoch in epochs:
+    for hidden_units in hidden_units_list:
+        for learning_rate in learning_rates:
+            for batch_size in batch_sizes:
+                for epoch in no_epochs:
 
-                    trainedW = train(trainX, trainY, testX, testY, hiddenUnits, epsilon, miniBatchSize, epoch, alpha)
-                    valYHat = predict(valX, trainedW)
+                    weights = train(trainX, trainY, testX, testY, hidden_units, learning_rate, batch_size, epoch, alpha)
+                    y_hat_val = predict(valX, weights, hidden_units)
 
-                    curAcc = fPC(valY, valYHat)
-                    print("hiddenUnits: {}, epsilon: {}, batchSize: {}, epochs: {}, alpha: {}, accuracy: {}".format(hiddenUnits, epsilon, miniBatchSize, epoch, alpha, curAcc))
+                    acc = fPC(valY, y_hat_val)
+                    print("Epochs: " + str(epoch) + " Hidden Units: " + str(hidden_units) + " Learning Rate: " + str(learning_rate) + " Batch size: " + str(batch_size) + " Acc: " + str(acc))
 
-                    if curAcc > bestAcc:
-                        bestAcc = curAcc
-                        bestNumUnitsInHiddenLayer = hiddenUnits
-                        bestEpsilon = epsilon
-                        bestMiniBatchSize = miniBatchSize
-                        bestNumEpochs = epoch
+                    if acc > best_acc:
+                        best_acc = acc
+                        best_hidden_units = hidden_units
+                        best_learning_rate = learning_rate
+                        best_batch_size = batch_size
+                        best_no_epochs = epoch
 
-    return  bestNumUnitsInHiddenLayer,bestEpsilon, bestMiniBatchSize, bestNumEpochs, alpha
+    return  best_hidden_units, best_learning_rate, best_batch_size, best_no_epochs, alpha
 
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
-def train (trainX, trainY, testX, testY, hiddenUnits, learning_rate, batch_size, no_epochs, alpha):
+def train (trainX, trainY, testX, testY, hidden_units, learning_rate, batch_size, no_epochs, alpha, print_flag=False):
     # Initialize weights randomly
-    W1 = 2*(np.random.random(size=(hiddenUnits, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
-    b1 = 0.01 * np.ones(hiddenUnits)
-    W2 = 2*(np.random.random(size=(NUM_OUTPUT, hiddenUnits))/hiddenUnits**0.5) - 1./hiddenUnits**0.5
+    W1 = 2*(np.random.random(size=(hidden_units, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
+    b1 = 0.01 * np.ones(hidden_units)
+    W2 = 2*(np.random.random(size=(NUM_OUTPUT, hidden_units))/hidden_units**0.5) - 1./hidden_units**0.5
     b2 = 0.01 * np.ones(NUM_OUTPUT)
     
     w = pack(W1, b1, W2, b2)
@@ -214,22 +211,22 @@ def train (trainX, trainY, testX, testY, hiddenUnits, learning_rate, batch_size,
             random_batch_list.append(n)
             counter += 1
 
-    #unpacking different terms from weights
-    w1, b1, w2, b2 = unpack(w)
-    
     for epoch in range(no_epochs):
         mini_batch_counter = 1
         for random_batch_no in random_batch_list:
             training_images_batch = training_images[random_batch_no]
             training_labels_batch = training_labels[random_batch_no]
+
+            # #unpacking different terms from weights
+            w1, b1, w2, b2 = unpack(w, hidden_units)
             
-            grad_vector = gradCE(training_images_batch, training_labels_batch, w)
-            grad_w1, grad_b1, grad_w2, grad_b2 = unpack(grad_vector)
+            grad_vector = gradCE(training_images_batch, training_labels_batch, w, hidden_units)
+            grad_w1, grad_b1, grad_w2, grad_b2 = unpack(grad_vector, hidden_units)
 
             b1 = b1.reshape(b1.shape[0], 1)
             b2 = b2.reshape(b2.shape[0], 1)
-            grad_b1 = grad_b1.reshape(grad_b1.shape[0], 1)
-            grad_b2 = grad_b2.reshape(grad_b2.shape[0], 1)
+            grad_b1 = grad_b1.reshape(hidden_units, 1)
+            grad_b2 = grad_b2.reshape(NUM_OUTPUT, 1)
 
             w1 = w1 - learning_rate*(grad_w1 + ((alpha * w1)/len(training_labels_batch))) 
             b1 = b1 - learning_rate*grad_b1
@@ -240,9 +237,13 @@ def train (trainX, trainY, testX, testY, hiddenUnits, learning_rate, batch_size,
             b2 = b2.reshape(b2.shape[0],)
             w = pack(w1,b1,w2,b2)
 
-            cost,acc,z_1,h_1, w1, w2, y_hat = fCE(training_images_batch, training_labels_batch, w)
-            print("Epoch: " + str(epoch+1) +  " Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cost) + " Acc: " + str(acc))
+            cost,acc,z_1,h_1, w1, w2, y_hat = fCE(training_images_batch, training_labels_batch, w, hidden_units)
+            
             mini_batch_counter += 1
+        if print_flag:
+            print("Epoch: " + str(epoch+1) + " Cross-Entropy Loss: " + str(cost) + " Acc: " + str(acc))
+
+    return w
 
 #Splits randomly training data into 20% validation data and 80% training data
 def train_validate_split(X,Y):
@@ -258,17 +259,17 @@ def train_validate_split(X,Y):
     
     return trainX, trainY, val_x, val_y
 
-def predict(X, w):
-    W1, b1, W2, b2 = unpack(w)
+def predict(X, w, hidden_units):
+    # print("w:{}".format(w))
+    W1, b1, W2, b2 = unpack(w,hidden_units)
 
-    b1 = np.reshape(b1, (NUM_HIDDEN,1))
+    b1 = np.reshape(b1, (hidden_units,1))
     b2 = np.reshape(b2, (NUM_OUTPUT,1))
 
     z_1 = W1.dot(X) + b1
     h_1 = relu(z_1)
     z_2 = W2.dot(h_1) + b2
     predictions = softmax_activation(z_2)
-    predictions = yhat_to_pred(predictions)
     return predictions
     
 
@@ -292,16 +293,27 @@ if __name__ == "__main__":
     # Check that the gradient is correct on just a few examples (randomly drawn).
     idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
     print("Numerical gradient:")
-    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_, NUM_HIDDEN)[0], 1e-10))
     print("Analytical gradient:")
-    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
+    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w, NUM_HIDDEN))
     print("Discrepancy:")
-    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
-                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
+    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_, NUM_HIDDEN)[0], \
+                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_, NUM_HIDDEN), \
                                     w))
 
-    hiddenunits, learning_rate, batch_size, no_epochs, alpha = findBestHyperparameters(trainX, trainY, val_x, val_y, testX, testY)
-    print(hiddenunits, learning_rate, batch_size, no_epochs, alpha)
 
-    # # Train the network using SGD.
-    # train(trainX, trainY, testX, testY, w)
+    print()
+    print("Finding Best Hyperparameters")
+    hidden_units, learning_rate, batch_size, no_epochs, alpha = findBestHyperparameters(trainX, trainY, val_x, val_y, testX, testY)
+
+    print()
+    print("Training Model:")
+
+    # Train the network using SGD.
+    weights = train(trainX, trainY, testX, testY, hidden_units, learning_rate, batch_size, no_epochs, alpha,print_flag=True)
+
+    # Running trained network on test data set
+    predictions = predict(testX, weights, hidden_units)
+    test_cross_entropy_loss, test_accuracy,z_1,h_1, w1, w2, y_hat = fCE(testX, testY, weights, hidden_units)
+
+    print("Test Set Cross Entropy Loss: " + str(test_cross_entropy_loss) + " Test Set Accuracy: " + str(test_accuracy))
