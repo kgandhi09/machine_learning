@@ -119,7 +119,7 @@ def gradCE (X, Y, w):
     h_1 = relu(z_1)
     z_2 = W2.dot(h_1) + b2
     y_hat = softmax_activation(z_2)
-    print(y_hat)
+
     Y = Y.T
 
     #background propogation equations
@@ -168,7 +168,7 @@ def train (trainX, trainY, testX, testY, w):
 
     #unpacking different terms from weights
     w1, b1, w2, b2 = unpack(w)
-    
+    print("here")
     for epoch in range(no_epochs):
         mini_batch_counter = 1
         for random_batch_no in random_batch_list:
