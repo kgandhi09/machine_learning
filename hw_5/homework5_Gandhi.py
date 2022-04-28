@@ -52,6 +52,17 @@ def loadData (which):
     
     return images, labels
 
+def yhat_to_pred(y_hat):
+    y_hat_ = []
+    for row in y_hat:
+        row[np.argmax(row)] = 1
+        row = row==1.0
+        row = row*1.0
+        y_hat_.append(row)
+
+    y_hat_ = np.array(y_hat_)
+    return y_hat_
+
 #Given the predictions Y^ and ground truth Y
 #Calculates the percent correct accuracy
 #Returns the percent correct accuracy value
@@ -73,14 +84,11 @@ def relu_prime(z):
     z[z>0] = 1
     return z
 
-#Given pre-activation scores z = W.X + b
-#Calculates a probability distribution for z
-#Returns the probability distribution for z
+# Softmax Activation function, z = (10,n)
 def softmax_activation(z):
-    exp_z = np.exp(z)
-    sum_z = np.sum(exp_z, axis=1).reshape(len(z),1)
-    y_hat = exp_z/sum_z
-    return y_hat
+    exp_z = np.exp(z.T)
+    sum_z = np.sum(np.exp(z.T), axis = 1).reshape(len(z.T),1)
+    return (exp_z/sum_z).T
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the cross-entropy (CE) loss, accuracy,
@@ -97,14 +105,13 @@ def fCE (X, Y, w):
     h_1 = relu(z_1)
     z_2 = W2.dot(h_1) + b2
     y_hat = softmax_activation(z_2)
-
-    # inner_math = Y.T*np.log(y_hat)
-    # inner_math = np.sum(inner_math,axis=1)
-    # cost = (np.mean(inner_math)*-1)
     
     cost = -np.sum(Y.T * np.log(y_hat))/len(Y)
 
-    return cost, z_1, h_1, W1, W2, y_hat
+    y_hat = yhat_to_pred(y_hat)
+    acc = fPC(y_hat, Y.T)
+
+    return cost, acc, z_1, h_1, W1, W2, y_hat
 
 # Given training images X, associated labels Y, and a vector of combined weights
 # and bias terms w, compute and return the gradient of fCE. You might
@@ -128,7 +135,7 @@ def gradCE (X, Y, w):
     grad_b2 = np.mean((y_hat - Y.T), axis=1) #(10,)
     grad_w2 = (y_hat - Y.T).dot(h_1.T)/Y.shape[0] # (10, 40)
 
-    g_T = grad_b2.T.dot(W2) * (relu_prime(z_1).T) #(n,40)
+    g_T = (y_hat - Y.T).T.dot(W2) * (relu_prime(z_1.T)) #(n,40)
     g = g_T.T
 
     grad_b1 = np.mean(g, axis=1) #(40,)
@@ -150,8 +157,8 @@ def prepare_training_data(Xtilde, Y, batch_size):
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
 def train (trainX, trainY, testX, testY, w):
-    no_epochs = 2
-    batch_size = 30000
+    no_epochs = 10
+    batch_size = 100
     learning_rate = 0.1
     no_of_batches = (int)(trainX.shape[1]/batch_size)
     alpha = 0.01
@@ -195,16 +202,25 @@ def train (trainX, trainY, testX, testY, w):
             b2 = b2.reshape(b2.shape[0],)
             w = pack(w1,b1,w2,b2)
 
-            cost,z_1,h_1, w1, w2, y_hat = fCE(training_images_batch, training_labels_batch, w)
-            print("Epoch: " + str(epoch+1) +  " Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cost))
+            cost,acc,z_1,h_1, w1, w2, y_hat = fCE(training_images_batch, training_labels_batch, w)
+            print("Epoch: " + str(epoch+1) +  " Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cost) + " Acc: " + str(acc))
             mini_batch_counter += 1
 
+#Splits randomly training data into 20% validation data and 80% training data
+def train_validate_split(X,y):
+    n = len(y)
+    randIdx = np.random.permutation(n)
+    print(randIdx, n)
+    # return trainX, trainY, val_X, val_Y
 
 if __name__ == "__main__":
     # Load data
     if "trainX" not in globals():
         trainX, trainY = loadData("train")
         testX, testY = loadData("test")
+
+    print(trainX.shape)
+    trainX, trainY, val_x, val_y = train_validate_split(trainX, trainY)
 
     # Initialize weights randomly
     W1 = 2*(np.random.random(size=(NUM_HIDDEN, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5

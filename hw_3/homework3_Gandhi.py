@@ -24,8 +24,6 @@ def one_hot_encoding(y, no_classes):
 #Returns Z (NxK)
 def preActivationScores(Xtilde, Wtilde):
     z = Xtilde.T.dot(Wtilde)
-    # print(z)
-    # print("----------------")
     return z
 
 #Given the pre activation scores
