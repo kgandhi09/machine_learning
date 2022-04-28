@@ -154,14 +154,52 @@ def prepare_training_data(Xtilde, Y, batch_size):
     label_batches = np.hsplit(Y, no_batches)
     return [image_batches, label_batches]
 
+# Optimize the hyperparameters
+def findBestHyperparameters(trainX, trainY, valX, valY, testX, testY):
+    bestNumUnitsInHiddenLayer = 0 
+    bestEpsilon = 0
+    bestMiniBatchSize = 0
+    bestNumEpochs = 0
+    bestAcc = 0
+    
+    unitsInHiddenLayer = [50]
+    epochs = [50, 60]
+    epsilons = [0.01, 0.05, 0.1]
+    miniBatchSizes = [32, 64]
+    alpha = 0.01 # Considering only one value for alpha
+
+    for hiddenUnits in unitsInHiddenLayer:
+        for epsilon in epsilons:
+            for miniBatchSize in miniBatchSizes:
+                for epoch in epochs:
+
+                    trainedW = train(trainX, trainY, testX, testY, hiddenUnits, epsilon, miniBatchSize, epoch, alpha)
+                    valYHat = predict(valX, trainedW)
+
+                    curAcc = fPC(valY, valYHat)
+                    print("hiddenUnits: {}, epsilon: {}, batchSize: {}, epochs: {}, alpha: {}, accuracy: {}".format(hiddenUnits, epsilon, miniBatchSize, epoch, alpha, curAcc))
+
+                    if curAcc > bestAcc:
+                        bestAcc = curAcc
+                        bestNumUnitsInHiddenLayer = hiddenUnits
+                        bestEpsilon = epsilon
+                        bestMiniBatchSize = miniBatchSize
+                        bestNumEpochs = epoch
+
+    return  bestNumUnitsInHiddenLayer,bestEpsilon, bestMiniBatchSize, bestNumEpochs, alpha
+
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
-def train (trainX, trainY, testX, testY, w):
-    no_epochs = 10
-    batch_size = 100
-    learning_rate = 0.1
+def train (trainX, trainY, testX, testY, hiddenUnits, learning_rate, batch_size, no_epochs, alpha):
+    # Initialize weights randomly
+    W1 = 2*(np.random.random(size=(hiddenUnits, NUM_INPUT))/NUM_INPUT**0.5) - 1./NUM_INPUT**0.5
+    b1 = 0.01 * np.ones(hiddenUnits)
+    W2 = 2*(np.random.random(size=(NUM_OUTPUT, hiddenUnits))/hiddenUnits**0.5) - 1./hiddenUnits**0.5
+    b2 = 0.01 * np.ones(NUM_OUTPUT)
+    
+    w = pack(W1, b1, W2, b2)
+
     no_of_batches = (int)(trainX.shape[1]/batch_size)
-    alpha = 0.01
     
     training_data = prepare_training_data(trainX, trainY, batch_size)
     training_images = training_data[0]
@@ -207,11 +245,32 @@ def train (trainX, trainY, testX, testY, w):
             mini_batch_counter += 1
 
 #Splits randomly training data into 20% validation data and 80% training data
-def train_validate_split(X,y):
-    n = len(y)
-    randIdx = np.random.permutation(n)
-    print(randIdx, n)
-    # return trainX, trainY, val_X, val_Y
+def train_validate_split(X,Y):
+    val_data_size = int(0.2 * X.shape[1])
+    rand_id = np.random.permutation(X.shape[1])
+    rand_id = rand_id[:val_data_size]
+
+    val_x = X[:,rand_id]
+    val_y = Y[:,rand_id]
+
+    trainX = np.delete(X, rand_id,axis=1)
+    trainY = np.delete(Y, rand_id,axis=1)
+    
+    return trainX, trainY, val_x, val_y
+
+def predict(X, w):
+    W1, b1, W2, b2 = unpack(w)
+
+    b1 = np.reshape(b1, (NUM_HIDDEN,1))
+    b2 = np.reshape(b2, (NUM_OUTPUT,1))
+
+    z_1 = W1.dot(X) + b1
+    h_1 = relu(z_1)
+    z_2 = W2.dot(h_1) + b2
+    predictions = softmax_activation(z_2)
+    predictions = yhat_to_pred(predictions)
+    return predictions
+    
 
 if __name__ == "__main__":
     # Load data
@@ -219,7 +278,6 @@ if __name__ == "__main__":
         trainX, trainY = loadData("train")
         testX, testY = loadData("test")
 
-    print(trainX.shape)
     trainX, trainY, val_x, val_y = train_validate_split(trainX, trainY)
 
     # Initialize weights randomly
@@ -242,5 +300,8 @@ if __name__ == "__main__":
                                     lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
                                     w))
 
+    hiddenunits, learning_rate, batch_size, no_epochs, alpha = findBestHyperparameters(trainX, trainY, val_x, val_y, testX, testY)
+    print(hiddenunits, learning_rate, batch_size, no_epochs, alpha)
+
     # # Train the network using SGD.
-    train(trainX, trainY, testX, testY, w) 
+    # train(trainX, trainY, testX, testY, w)
