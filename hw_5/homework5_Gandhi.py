@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
+import random
 
 NUM_INPUT = 784  # Number of input neurons
 NUM_HIDDEN = 40  # Number of hidden neurons
@@ -110,26 +111,89 @@ def gradCE (X, Y, w):
     
     W1, b1, W2, b2 = unpack(w)
     
-    cost,z_1,h_1, w1, w2, y_hat = fCE(X,Y,w)
+    #forward propogation equations
+    b1 = np.reshape(b1, (NUM_HIDDEN,1))
+    b2 = np.reshape(b2, (NUM_OUTPUT,1))
+
+    z_1 = W1.dot(X) + b1
+    h_1 = relu(z_1)
+    z_2 = W2.dot(h_1) + b2
+    y_hat = softmax_activation(z_2)
+    
     Y = Y.T
 
+    #background propogation equations
     grad_b2 = np.mean((y_hat - Y.T), axis=1) #(10,)
     grad_w2 = (y_hat - Y.T).dot(h_1.T) # (10, 40)
 
     g_T = grad_b2.T.dot(W2) * (relu_prime(z_1).T) #(n,40)
     g = g_T.T
 
-    grad_w1 = g.dot(X.T) #(40,784)
     grad_b1 = np.mean(g, axis=1) #(40,)
+    grad_w1 = g.dot(X.T) #(40,784)
     
     grad = pack(grad_w1, grad_b1, grad_w2, grad_b2)
     
     return grad
 
+#Given input images Xtilde, and batch_size
+#Divides the training data into random batches based on batch_size
+#Returns the list of randomized batches of training data [(M+1)xbacth_size, ...]
+def prepare_training_data(Xtilde, Y, batch_size):
+    no_batches = Xtilde.shape[1]/batch_size
+    image_batches = np.hsplit(Xtilde, no_batches)
+    label_batches = np.hsplit(Y, no_batches)
+    return [image_batches, label_batches]
+
 # Given training and testing datasets and an initial set of weights/biases b,
 # train the NN.
 def train (trainX, trainY, testX, testY, w):
-    pass
+    no_epochs = 10
+    batch_size = 100
+    learning_rate = 0.1
+    no_of_batches = (int)(trainX.shape[1]/batch_size)
+    
+    training_data = prepare_training_data(trainX, trainY, batch_size)
+    training_images = training_data[0]
+    training_labels = training_data[1]
+
+    random_batch_list = []
+    
+    counter = 0
+    while(counter < no_of_batches):
+        n = random.randint(1,no_of_batches)-1
+        if(n not in random_batch_list):
+            random_batch_list.append(n)
+            counter += 1
+
+    #unpacking different terms from weights
+    w1, b1, w2, b2 = unpack(w)
+
+    for epoch in range(no_epochs):
+        mini_batch_counter = 1
+        for random_batch_no in random_batch_list:
+            training_images_batch = training_images[random_batch_no]
+            training_labels_batch = training_labels[random_batch_no]
+            
+            grad_vector = gradCE(training_images_batch, training_labels_batch, w)
+            grad_w1, grad_b1, grad_w2, grad_b2 = unpack(grad_vector)
+
+            b1 = b1.reshape(b1.shape[0], 1)
+            b2 = b2.reshape(b2.shape[0], 1)
+            grad_b1 = grad_b1.reshape(grad_b1.shape[0], 1)
+            grad_b2 = grad_b2.reshape(grad_b2.shape[0], 1)
+
+            w1 = w1 - learning_rate*grad_w1 
+            b1 = b1 - learning_rate*grad_b1
+            w2 = w2 - learning_rate*grad_w2
+            b2 = b2 - learning_rate*grad_b2
+
+            # w = pack(w1,b1,w2,b2)
+
+            cost,z_1,h_1, w1, w2, y_hat = fCE(training_images_batch, training_labels_batch, w)
+            print("Epoch: " + str(epoch+1) +  " Batch no: " + str(mini_batch_counter) + " Cross-Entropy Loss: " + str(cost))
+            mini_batch_counter += 1
+
 
 if __name__ == "__main__":
     # Load data
@@ -147,15 +211,15 @@ if __name__ == "__main__":
     w = pack(W1, b1, W2, b2)
 
     # Check that the gradient is correct on just a few examples (randomly drawn).
-    idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
-    print("Numerical gradient:")
-    print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
-    print("Analytical gradient:")
-    print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
-    print("Discrepancy:")
-    print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
-                                    lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
-                                    w))
+    # idxs = np.random.permutation(trainX.shape[0])[0:NUM_CHECK]
+    # print("Numerical gradient:")
+    # print(scipy.optimize.approx_fprime(w, lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], 1e-10))
+    # print("Analytical gradient:")
+    # print(gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w))
+    # print("Discrepancy:")
+    # print(scipy.optimize.check_grad(lambda w_: fCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_)[0], \
+    #                                 lambda w_: gradCE(np.atleast_2d(trainX[:,idxs]), np.atleast_2d(trainY[:,idxs]), w_), \
+    #                                 w))
 
     # # Train the network using SGD.
     train(trainX, trainY, testX, testY, w) 
